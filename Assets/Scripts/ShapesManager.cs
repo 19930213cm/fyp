@@ -7,13 +7,14 @@ using UnityEngine.UI;
 
 public class ShapesManager : MonoBehaviour
 {
-    public Text DebugText, ScoreText;
+    public Text DebugText, ScoreText, movesText;
     public bool ShowDebugInfo = false;
     //candy graphics taken from http://opengameart.org/content/candy-pack-1
 
     public ShapesArray shapes;
 
     private int score;
+    private int remainingMoves; 
 
     public readonly Vector2 BottomRight = new Vector2(-2.37f, -4.27f);
     public readonly Vector2 CandySize = new Vector2(0.7f, 0.7f);
@@ -24,6 +25,9 @@ public class ShapesManager : MonoBehaviour
     public GameObject[] CandyPrefabs;
     public GameObject[] ExplosionPrefabs;
     public GameObject[] BonusPrefabs;
+    public string levelName;
+    public LevelManager levelManager; 
+    LevelData levelData; 
 
     private IEnumerator CheckPotentialMatchesCoroutine;
     private IEnumerator AnimatePotentialMatchesCoroutine;
@@ -37,13 +41,28 @@ public class ShapesManager : MonoBehaviour
     }
 
     // Use this for initialization
-    void Start()
+    public void Start()
     {
+         levelManager = new LevelManager(levelName);
+        levelData = levelManager.getLevelData();
+
         InitializeTypesOnPrefabShapesAndBonuses();
 
         InitializeCandyAndSpawnPositions();
 
         StartCheckForPotentialMatches();
+
+    }
+
+    private bool shouldGameEnd()
+    {
+        if (score > levelData.targetScore || remainingMoves < 1)
+        {
+            return true;
+        } else
+        {
+            return false;
+        }
     }
 
     /// <summary>
@@ -179,7 +198,7 @@ public class ShapesManager : MonoBehaviour
 
 
     // Update is called once per frame
-    void Update()
+    public void Update()
     {
         if (ShowDebugInfo)
             DebugText.text = DebugUtilities.GetArrayContents(shapes);
@@ -278,6 +297,8 @@ public class ShapesManager : MonoBehaviour
             shapes.UndoSwap();
         }
 
+
+
         //if more than 3 matches and no Bonus is contained in the line, we will award a new Bonus
         bool addBonus = totalMatches.Count() >= Constants.MinimumMatchesForBonus &&
             !BonusTypeUtilities.ContainsDestroyWholeRowColumn(hitGomatchesInfo.BonusesContained) &&
@@ -291,11 +312,16 @@ public class ShapesManager : MonoBehaviour
             hitGoCache = sameTypeGo.GetComponent<Shape>();
         }
 
+        //decrease the players remaining moves
+        decreaseMoves();
+
         int timesRun = 1;
         while (totalMatches.Count() >= Constants.MinimumMatches)
         {
             //increase score
             IncreaseScore((totalMatches.Count() - 2) * Constants.Match3Score);
+
+
 
             if (timesRun >= 2)
                 IncreaseScore(Constants.SubsequentMatchScore);
@@ -342,6 +368,10 @@ public class ShapesManager : MonoBehaviour
             timesRun++;
         }
 
+        if (shouldGameEnd())
+        {
+            Debug.Log("end game");
+        }
         state = GameState.None;
         StartCheckForPotentialMatches();
     }
@@ -435,7 +465,16 @@ public class ShapesManager : MonoBehaviour
     private void InitializeVariables()
     {
         score = 0;
+        remainingMoves = levelData.moves; 
         ShowScore();
+        ShowMoves();
+
+    }
+
+    private void decreaseMoves()
+    {
+        remainingMoves--;
+        ShowMoves();
     }
 
     private void IncreaseScore(int amount)
@@ -444,9 +483,15 @@ public class ShapesManager : MonoBehaviour
         ShowScore();
     }
 
+    private void ShowMoves()
+    {
+        //movesText.text = remainingMoves.ToString(); 
+    }
+
     private void ShowScore()
     {
-        ScoreText.text = "Score: " + score.ToString();
+       // ScoreText.text = "Score: " + score.ToString();
+        ScoreText.text =  score.ToString() + " / " + levelData.targetScore.ToString();  
     }
 
     /// <summary>

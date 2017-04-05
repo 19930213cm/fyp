@@ -3,9 +3,12 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 
-namespace Assets.Scripts
+
+[System.Serializable]
+public class LevelData
 {
-    class LevelData
-    {
-    }
+    public int[,] tiles;
+    public int targetScore;
+    public int moves;   
 }
+
